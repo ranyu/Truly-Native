@@ -1,4 +1,4 @@
 # Truly-Native
 Codes for Kaggle Competition - Truly-Native
 
-further_process_html.py -> process_csv.py -> xgb_solution.py
+further_process_html -> process_csv -> xgb_solution
