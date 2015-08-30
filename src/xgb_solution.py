@@ -32,16 +32,18 @@ with open("datasets/test_idx.pkl") as f:
 
 print "Performing SVD..."
 X = hstack((X_tag, X_attr))
+X_test = hstack((X_test_tag, X_test_attr))
 svd = TruncatedSVD(n_components=200, n_iter=5)
 X = svd.fit_transform(X)
+X_test = svd.transform(X_test) 
 
 print "Using Xgboost..."
 dtrain = xgb.DMatrix(X, label=y)
 param = {"objective":"binary:logistic", "nthread":8,
          "eval_metric":"auc", "bst:max_depth":30, 
          "bst:min_child_weight":1, "bst:subsample":0.7,
-         "bst:colsample_bytree":0.7, "bst:eta":0.05}
-num_round = 300
+         "bst:colsample_bytree":0.7, "bst:eta":0.01}
+num_round = 1200
 
 print "Training..."
 bst = xgb.train(param, dtrain, num_round)
