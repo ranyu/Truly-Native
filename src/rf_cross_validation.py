@@ -21,7 +21,7 @@ def train_and_test(X_train, X_test, y_train, y_test):
     y_test = np.array(y_test)
     fpr, tpr, thresholds = metrics.roc_curve(y_test, proba, pos_label=1)
     loss = metrics.auc(fpr, tpr)
-    print loss
+    print "Error of current folder: " + str(loss)
     return loss
 
 
