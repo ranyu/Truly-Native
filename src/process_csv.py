@@ -41,7 +41,7 @@ def get_train_matrix(path):
                               sublinear_tf=1, stop_words=None)
     tfv_attr = TfidfVectorizer(min_df=1, max_features=None, strip_accents='unicode',
                                analyzer='word', token_pattern=r'\w{1,}',
-                               ngram_range=(1, 1), use_idf=1, smooth_idf=1,
+                               ngram_range=(1, 2), use_idf=1, smooth_idf=1,
                                sublinear_tf=1, stop_words=None)
     tags = tfv_tag.fit_transform(tags)
     attrs = tfv_attr.fit_transform(attrs)
