@@ -1,10 +1,10 @@
 import pandas as pd
 
 
-xgboost1 = pd.read_csv("xgboostChecked1.csv")
-xgboost2 = pd.read_csv("xgboostChecked2.csv")
+logistic = pd.read_csv("logisticChecked.csv")
+xgboost = pd.read_csv("xgboostChecked.csv")
 
-idx = xgboost1.file.values
-prediction = (xgboost1.sponsored.values + xgboost2.sponsored.values) / 2
+idx = xgboost.file.values
+prediction = logistic.sponsored.values*0.3 + xgboost.sponsored.values*0.7
 submission = pd.DataFrame({"file": idx, "sponsored": prediction})
 submission.to_csv("ensemble.csv", index=False)
