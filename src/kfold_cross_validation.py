@@ -8,12 +8,18 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.decomposition import TruncatedSVD
 from sklearn import metrics
 from sklearn import cross_validation
-from sklearn.svm import LinearSVC
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 
+##############################################################################
+# parameters #################################################################
+##############################################################################
+
 NUM_OF_SAMPLE = 10000
+IS_APPLY_SVD = False
+MODEL = "nb"
 param = {"objective":"binary:logistic", "nthread":8,
          "eval_metric":"auc", "bst:max_depth":30, 
          "bst:min_child_weight":1, "bst:subsample":0.7,
@@ -40,20 +46,20 @@ def train_and_test(X_train, X_test, y_train, y_test, model):
         bst = xgb.train(param, dtrain, num_round)
         prediction = bst.predict(dtest)
 
-    elif model in ["rf", "lr", "lsvm"]:
+    elif model in ["rf", "lr", "nb"]:
         if model == "rf":
             clf = RandomForestClassifier(n_estimators=500, random_state=1234, max_features=100, n_jobs=4)
         elif model == "lr":
             clf = LogisticRegression(C=3.0, random_state=1234)
         else:
-            clf = LinearSVC(C=0.5, random_state=1234)
+            clf = BernoulliNB(alpha=0.5)
         clf.fit(X_train, y_train)
         prediction = clf.predict_proba(X_test)
         prediction = prediction[:, 1]
 
     else:
         raise ValueError("model must be Random Forest(rf), GBDT(xgb), \
-                         Logistic Regression(lr) or Linear SVM(lsvm)")
+                         Logistic Regression(lr) or Naive Bayes(nb)")
         
     y_test = np.array(y_test)
     fpr, tpr, thresholds = metrics.roc_curve(y_test, prediction, pos_label=1)
@@ -84,8 +90,8 @@ def k_fold_validation(data, y, trials=5, model="rf"):
         
     return error/trials
 
-
-def main(is_apply_svd, model):
+    
+if __name__ == "__main__":
     
     with open("datasets/trainTagSparse.pkl") as f:
         X_tag = pickle.load(f)
@@ -99,15 +105,11 @@ def main(is_apply_svd, model):
     X = csr_matrix(hstack((X_tag, X_attr)))
     X = X[:NUM_OF_SAMPLE]
 
-    if is_apply_svd:
+    if IS_APPLY_SVD:
         print "Performing SVD..."
         svd = TruncatedSVD(n_components=150, n_iter=5)
         X = svd.fit_transform(X)
 
     print "Training..."
-    score = k_fold_validation(X, y, 5, model)
+    score = k_fold_validation(X, y, 5, MODEL)
     print "Average Error: " + str(score)
-
-
-if __name__ == "__main__":
-    main(is_apply_svd=False, model="lsvm")
