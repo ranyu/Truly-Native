@@ -8,6 +8,8 @@ from scipy.sparse import csr_matrix, hstack
 from sklearn.decomposition import TruncatedSVD
 from sklearn import metrics
 from sklearn import cross_validation
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 
@@ -32,17 +34,26 @@ def train_and_test(X_train, X_test, y_train, y_test, model):
     --------------------------------------------------------------------
     loss (float): error of the model in test data
     """
-    if model == "rf":
-        forest = RandomForestClassifier(n_estimators=100, random_state=1234)
-        forest = forest.fit(X_train, y_train)
-        prediction = forest.predict_proba(X_test)
-        prediction = prediction[:, 1]
-        
-    elif model == "xgb":
+    if model == "xgb":
         dtrain = xgb.DMatrix(X_train, label=y_train)
         dtest = xgb.DMatrix(X_test)
         bst = xgb.train(param, dtrain, num_round)
         prediction = bst.predict(dtest)
+
+    elif model in ["rf", "lr", "lsvm"]:
+        if model == "rf":
+            clf = RandomForestClassifier(n_estimators=500, random_state=1234, max_features=100, n_jobs=4)
+        elif model == "lr":
+            clf = LogisticRegression(C=3.0, random_state=1234)
+        else:
+            clf = LinearSVC(C=0.5, random_state=1234)
+        clf.fit(X_train, y_train)
+        prediction = clf.predict_proba(X_test)
+        prediction = prediction[:, 1]
+
+    else:
+        raise ValueError("model must be Random Forest(rf), GBDT(xgb), \
+                         Logistic Regression(lr) or Linear SVM(lsvm)")
         
     y_test = np.array(y_test)
     fpr, tpr, thresholds = metrics.roc_curve(y_test, prediction, pos_label=1)
@@ -74,29 +85,29 @@ def k_fold_validation(data, y, trials=5, model="rf"):
     return error/trials
 
 
-with open("datasets/trainTagSparse.pkl") as f:
-    X_tag = pickle.load(f)
+def main(is_apply_svd, model):
+    
+    with open("datasets/trainTagSparse.pkl") as f:
+        X_tag = pickle.load(f)
+    with open("datasets/trainAttrSparse.pkl") as f:
+        X_attr = pickle.load(f)
+    with open("datasets/y.pkl") as f:
+        label = pickle.load(f)
+        y = np.array([int(i) for i in label])
+        
+    y = y[:NUM_OF_SAMPLE]
+    X = csr_matrix(hstack((X_tag, X_attr)))
+    X = X[:NUM_OF_SAMPLE]
 
-with open("datasets/trainAttrSparse.pkl") as f:
-    X_attr = pickle.load(f)
+    if is_apply_svd:
+        print "Performing SVD..."
+        svd = TruncatedSVD(n_components=150, n_iter=5)
+        X = svd.fit_transform(X)
 
-with open("datasets/y.pkl") as f:
-    label = pickle.load(f)
-    y = np.array([int(i) for i in label])
+    print "Training..."
+    score = k_fold_validation(X, y, 5, model)
+    print "Average Error: " + str(score)
 
-with open("datasets/train_idx.pkl") as f:
-    train_idx = pickle.load(f)
 
-with open("datasets/test_idx.pkl") as f:
-    test_idx = pickle.load(f)
-
-print "Performing SVD..."
-X = hstack((X_tag, X_attr))
-svd = TruncatedSVD(n_components=200, n_iter=5)
-X = svd.fit_transform(X)
-X = X[:NUM_OF_SAMPLE]
-y = y[:NUM_OF_SAMPLE]
-
-print "Training..."
-score = k_fold_validation(X, y, 5, "xgb")
-print score
+if __name__ == "__main__":
+    main(is_apply_svd=False, model="lsvm")
