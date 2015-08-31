@@ -99,7 +99,7 @@ def main(argv):
             test_tag_array = []
             test_id_array = []
 
-        filenameDetails = filename.split("/")
+        filenameDetails = fIn[0].split("\\")
         urlid = filenameDetails[-1].split('_')[0]
 
         try:
@@ -129,4 +129,4 @@ def main(argv):
     
 
 if __name__ == "__main__":
-   main(["datasets/html", "datasets/trainTags.csv", "datasets/testTags.csv"])
+   main(["datasets\\html", "datasets\\trainTags.csv", "datasets\\testTags.csv"])
