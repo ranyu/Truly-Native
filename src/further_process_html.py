@@ -3,6 +3,7 @@ import os, sys, logging, string, glob
 from bs4 import BeautifulSoup as bs
 import csv
 import json
+import pandas as pd
 
 
 ferr = open("errors_in_scraping.log", "w")
