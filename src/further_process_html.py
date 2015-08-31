@@ -4,11 +4,25 @@ from bs4 import BeautifulSoup as bs
 import csv
 import json
 
-from further_process_json import map_of_data
-
 
 ferr = open("errors_in_scraping.log", "w")
 PATH_TO_TRAIN_LABELS = "datasets/train.csv"
+
+
+def map_of_data(PATH_TO_TRAIN_LABELS):
+    """ Draw the map of id and sponsored from dataset
+    parameters:
+    --------------------------------------------------------
+    PATH_TO_TRAIN_LABELS: path to the file of dataset
+    """
+    train_df = pd.read_csv(PATH_TO_TRAIN_LABELS)
+    mapOfTrain = dict()
+    
+    for i, row in train_df.iterrows():
+        row["id"] = str(row["file"].split('_')[0])
+        mapOfTrain[row["id"]] = row["sponsored"]
+        
+    return mapOfTrain
 
 
 def parse_page(in_file, urlid):
@@ -24,6 +38,7 @@ def parse_page(in_file, urlid):
     content = soup.find_all(True)    # find all tags
     tags = []
     attrs = []
+    values = []
     
     for i in content:
         name = i.name
@@ -34,8 +49,12 @@ def parse_page(in_file, urlid):
         for key, value in i.attrs.items():
             entry = str(name) + "_" + str(key)
             attrs.append(entry)
+            if isinstance(value, list):
+                values.append("list")
+            elif isinstance(value, str) and len(value) < 15:
+                values.append(value)
             
-    return " ".join(tags), " ".join(attrs)
+    return " ".join(tags), " ".join(attrs), " ".join(values)
 
 
 def main(argv):
@@ -59,19 +78,22 @@ def main(argv):
 
     cu.log.setLevel(logging.CRITICAL)
     fIn = glob.glob(inFolder + "/*/*raw*")
-    feedstrain.writerow(["id", "tags", "attributes", "sponsored"])
-    feedstest.writerow(["id", "tags", "attributes"])
+    feedstrain.writerow(["id", "tags", "attributes", "values", "sponsored"])
+    feedstest.writerow(["id", "tags", "attributes", "values"])
 
     for idx, filename in enumerate(fIn):
 
         if idx % 1000 == 0:
             print "Processed %d HTML files" % idx
-            feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, y))
-            feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array))
+            if idx > 0:
+                feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, train_value_array, y))
+                feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array, test_value_array))
             y = []
+            train_value_array = []
             train_attr_array = []
             train_tag_array = []
             train_id_array = []
+            test_value_array = []
             test_attr_array = []
             test_tag_array = []
             test_id_array = []
@@ -80,7 +102,7 @@ def main(argv):
         urlid = filenameDetails[-1].split('_')[0]
 
         try:
-            tags, attrs = parse_page(filename, urlid)
+            tags, attrs, values = parse_page(filename, urlid)
         except Exception as e:
             ferr.write("parse error with reason : "+str(e)+" on page "+urlid+"\n")
             continue
@@ -88,23 +110,22 @@ def main(argv):
         try:
             sponsored = mapOfTrain[urlid]
             y.append(sponsored)
+            train_value_array.append(values)
             train_attr_array.append(attrs)
             train_tag_array.append(tags)
             train_id_array.append(urlid)
         except KeyError:
+            test_value_array.append(values)
             test_attr_array.append(attrs)
             test_tag_array.append(tags)
             test_id_array.append(urlid)
         
-    feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, y))
-    feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array))
+    feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, train_value_array, y))
+    feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array, test_value_array))
     traincsv.close()
     testcsv.close()
     ferr.close()
     
 
-
 if __name__ == "__main__":
-   main(["/home/yejiming/desktop/Kaggle/NativeAds/html",
-         "/home/yejiming/desktop/Kaggle/NativeAds/datasets/trainTags.csv",
-         "/home/yejiming/desktop/Kaggle/NativeAds/datasets/testTags.csv"])
+   main(["datasets/html", "datasets/trainTags.csv", "datasets/testTags.csv"])
