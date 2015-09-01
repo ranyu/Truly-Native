@@ -75,7 +75,7 @@ def main(argv):
     feedstrain = csv.writer(traincsv)
     testcsv = open(outputTestFile, mode="w")
     feedstest = csv.writer(testcsv)
-    mapOfTrain = map_of_data(PATH_TO_TRAIN_LABELS)
+    map_of_train = map_of_data(PATH_TO_TRAIN_LABELS)
 
     cu.log.setLevel(logging.CRITICAL)
     fIn = glob.glob(inFolder + "/*/*raw*")
@@ -99,7 +99,7 @@ def main(argv):
             test_tag_array = []
             test_id_array = []
 
-        filenameDetails = fIn[0].split("\\")
+        filenameDetails = filename.split("\\")
         urlid = filenameDetails[-1].split('_')[0]
 
         try:
@@ -109,7 +109,7 @@ def main(argv):
             continue
 
         try:
-            sponsored = mapOfTrain[urlid]
+            sponsored = map_of_train[urlid]
             y.append(sponsored)
             train_value_array.append(values)
             train_attr_array.append(attrs)
