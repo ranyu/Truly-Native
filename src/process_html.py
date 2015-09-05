@@ -51,7 +51,9 @@ def parse_page(in_file, urlid):
             entry = str(name) + "_" + str(key)
             attrs.append(entry)
             if isinstance(value, list):
-                values.append("list")
+                for val in value:
+                    if len(value) < 15:
+                        values.append(val)
             elif isinstance(value, str) and len(value) < 15:
                 values.append(value)
             
@@ -87,8 +89,8 @@ def main(argv):
         if idx % 1000 == 0:
             print "Processed %d HTML files" % idx
             if idx > 0:
-                feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, train_value_array, y))
-                feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array, test_value_array))
+                feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, y))
+                feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array))
             y = []
             train_value_array = []
             train_attr_array = []
