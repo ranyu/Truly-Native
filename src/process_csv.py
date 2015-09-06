@@ -5,14 +5,12 @@ csv.field_size_limit(999999999)
 
 import numpy as np
 import pandas as pd
-import nltk
 from scipy.sparse import csr_matrix, lil_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 PATH_TO_TRAIN = "datasets/trainTags.csv"
 PATH_TO_TEST = "datasets/testTags.csv"
-STOPWORDS = nltk.corpus.stopwords.words('english')
 
 
 def get_train_matrix(path):
@@ -49,7 +47,7 @@ def get_train_matrix(path):
                                analyzer='word', token_pattern=r'\w{1,}',
                                ngram_range=(1, 2), use_idf=1, smooth_idf=1,
                                sublinear_tf=1, stop_words=None)
-    tfv_val = TfidfVectorizer(min_df=1, max_features=None, strip_accents='unicode',
+    tfv_val = TfidfVectorizer(min_df=1, max_features=300000, strip_accents='unicode',
                               analyzer='word', token_pattern=r'\w{1,}',
                               ngram_range=(1, 2), use_idf=1, smooth_idf=1,
                               sublinear_tf=1, stop_words=None)
@@ -105,11 +103,11 @@ train_text = train_df.text.values
 tfv_title = TfidfVectorizer(min_df=5, max_features=10000, strip_accents='unicode',
                             analyzer='word', token_pattern=r'\w{2,}',
                             ngram_range=(1, 2), use_idf=1, smooth_idf=1,
-                            sublinear_tf=1, stop_words=STOPWORDS)
+                            sublinear_tf=1, stop_words="english")
 tfv_text = TfidfVectorizer(min_df=5, max_features=50000, strip_accents='unicode',
                            analyzer='word', token_pattern=r'\w{2,}',
                            ngram_range=(1, 1), use_idf=1, smooth_idf=1,
-                           sublinear_tf=1, stop_words=STOPWORDS)
+                           sublinear_tf=1, stop_words="english")
 
 train_title = tfv_title.fit_transform(train_title)
 train_text = tfv_text.fit_transform(train_text)
@@ -127,7 +125,7 @@ with open("datasets/trainTagSparse.pkl", "w") as f:
 with open("datasets/trainAttrSparse.pkl", "w") as f:
     pickle.dump(train_attrs, f)
     f.close()
-with open("datasets/trainValueSparse.pkl", "w") as f:
+with open("datasets/trainValueSparse2.pkl", "w") as f:
     pickle.dump(train_values, f)
     f.close()
 with open("datasets/trainTitleSparse.pkl", "w") as f:
@@ -160,7 +158,7 @@ with open("datasets/testTagSparse.pkl", "w") as f:
 with open("datasets/testAttrSparse.pkl", "w") as f:
     pickle.dump(test_attrs, f)
     f.close()
-with open("datasets/testValueSparse.pkl", "w") as f:
+with open("datasets/testValueSparse2.pkl", "w") as f:
     pickle.dump(test_values, f)
     f.close()
 with open("datasets/testTitleSparse.pkl", "w") as f:
