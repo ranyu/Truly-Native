@@ -4,12 +4,15 @@ import cPickle as pickle
 csv.field_size_limit(999999999)
 
 import numpy as np
+import pandas as pd
+import nltk
 from scipy.sparse import csr_matrix, lil_matrix
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 PATH_TO_TRAIN = "datasets/trainTags.csv"
 PATH_TO_TEST = "datasets/testTags.csv"
+STOPWORDS = nltk.corpus.stopwords.words('english')
 
 
 def get_train_matrix(path):
@@ -135,7 +138,7 @@ with open("datasets/trainTextSparse.pkl", "w") as f:
     f.close()
 
 # collect garbage
-train_tags = train_attrs = train_values = None
+train_tags = train_attrs = train_values = train_title = train_text = None
 
 print "getting test matrices..."
 test_idx, test_tags, test_attrs, test_values = \
