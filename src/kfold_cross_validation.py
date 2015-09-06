@@ -19,7 +19,8 @@ from sklearn.ensemble import RandomForestClassifier
 
 NUM_OF_SAMPLE = 10000
 IS_APPLY_SVD = False
-MODEL = "nb"
+MODEL = "lr"
+SET_OF_MODEL = ["rf", "lr", "nb"]
 param = {"objective":"binary:logistic", "nthread":8,
          "eval_metric":"auc", "bst:max_depth":30, 
          "bst:min_child_weight":1, "bst:subsample":0.7,
@@ -46,13 +47,13 @@ def train_and_test(X_train, X_test, y_train, y_test, model):
         bst = xgb.train(param, dtrain, num_round)
         prediction = bst.predict(dtest)
 
-    elif model in ["rf", "lr", "nb"]:
+    elif model in SET_OF_MODEL:
         if model == "rf":
             clf = RandomForestClassifier(n_estimators=500, random_state=1234, max_features=100, n_jobs=4)
         elif model == "lr":
             clf = LogisticRegression(C=3.0, random_state=1234)
         else:
-            clf = BernoulliNB(alpha=0.5)
+            clf = BernoulliNB(alpha=0.0)
         clf.fit(X_train, y_train)
         prediction = clf.predict_proba(X_test)
         prediction = prediction[:, 1]
@@ -97,12 +98,14 @@ if __name__ == "__main__":
         X_tag = pickle.load(f)
     with open("datasets/trainAttrSparse.pkl") as f:
         X_attr = pickle.load(f)
+    with open("datasets/trainValueSparse.pkl") as f:
+        X_value = pickle.load(f)
     with open("datasets/y.pkl") as f:
         label = pickle.load(f)
         y = np.array([int(i) for i in label])
         
     y = y[:NUM_OF_SAMPLE]
-    X = csr_matrix(hstack((X_tag, X_attr)))
+    X = csr_matrix(hstack((X_tag, X_attr, X_value)))
     X = X[:NUM_OF_SAMPLE]
 
     if IS_APPLY_SVD:
