@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from scipy.sparse import csr_matrix, hstack
-from sklearn.decomposition import TruncatedSVD
+from sklearn.decomposition import TruncatedSVD, MiniBatchSparsePCA
 from sklearn import metrics
 from sklearn import cross_validation
 from sklearn.naive_bayes import BernoulliNB
@@ -95,24 +95,30 @@ def k_fold_validation(data, y, trials=5, model="rf"):
 if __name__ == "__main__":
     
     with open("datasets/trainTagSparse.pkl") as f:
-        X_tag = pickle.load(f)
+        X_tag = pickle.load(f)[:NUM_OF_SAMPLE]
     with open("datasets/trainAttrSparse.pkl") as f:
-        X_attr = pickle.load(f)
-    with open("datasets/trainValueSparse.pkl") as f:
-        X_value = pickle.load(f)
+        X_attr = pickle.load(f)[:NUM_OF_SAMPLE]
+    with open("datasets/trainTitleSparse.pkl") as f:
+        X_title = pickle.load(f)[:NUM_OF_SAMPLE]
+    with open("datasets/trainTextSparse.pkl") as f:
+        X_text = pickle.load(f)[:NUM_OF_SAMPLE]
     with open("datasets/y.pkl") as f:
-        label = pickle.load(f)
+        label = pickle.load(f)[:NUM_OF_SAMPLE]
         y = np.array([int(i) for i in label])
-        
-    y = y[:NUM_OF_SAMPLE]
-    X = csr_matrix(hstack((X_tag, X_attr, X_value)))
-    X = X[:NUM_OF_SAMPLE]
 
     if IS_APPLY_SVD:
-        print "Performing SVD..."
-        svd = TruncatedSVD(n_components=150, n_iter=5)
-        X = svd.fit_transform(X)
+        with open("datasets/trainValueSparse2.pkl") as f:
+            X_value = pickle.load(f)[:NUM_OF_SAMPLE]
+    else:
+        with open("datasets/trainValueSparse.pkl") as f:
+            X_value = pickle.load(f)[:NUM_OF_SAMPLE]
 
+    X = csr_matrix(hstack((X_tag, X_attr, X_value, X_title, X_text)))
+    if IS_APPLY_SVD:
+        print "applying SVD..."
+        svd = TruncatedSVD(n_components=200, n_iter=5)
+        X = svd.fit_transform(X)
+    
     print "Training..."
     score = k_fold_validation(X, y, 5, MODEL)
     print "Average Error: " + str(score)
