@@ -1,5 +1,5 @@
 import cssutils as cu
-import os, sys, logging, string, glob
+import os, re, sys, logging, string, glob
 from bs4 import BeautifulSoup as bs
 import csv
 import json
@@ -26,6 +26,47 @@ def map_of_data(PATH_TO_TRAIN_LABELS):
     return mapOfTrain
 
 
+def parse_text(soup):
+    """
+    Parameters:
+    -------------------------------------------
+    soup: beautifulSoup4 parsed html page
+    Output:
+    -------------------------------------------
+    textdata: a list of parsed text output by
+              looping over html paragraph tags
+    """
+    textdata = [""]
+
+    for text in soup.find_all("p"):
+        try:
+            textdata.append(text.text.encode("ascii", "ignore").strip())
+        except Exception:
+            continue
+
+    return filter(None, textdata)
+
+
+def parse_title(soup):
+    """
+    Parameters:
+    --------------------------------------
+    soup: beautifulSoup4 parsed html page
+    Output:
+    --------------------------------------
+    title: parsed title
+    """
+
+    title = [""]
+
+    try:
+        title.append(soup.title.string.encode("ascii", "ignore").strip())
+    except Exception:
+        return title
+
+    return filter(None, title)
+
+
 def parse_page(in_file, urlid):
     """ Parse html files
     parameters:
@@ -35,6 +76,15 @@ def parse_page(in_file, urlid):
     """
     page = open(in_file)
     soup = bs(page)
+
+    title = parse_title(soup)
+    title = title[0] if title else ""
+    title = " ".join(re.findall(r"\w{2,}", title))
+    text = parse_text(soup)
+    text = map(lambda x: re.sub(r"[\n\t,.:;()\-\/]+", " ", x), text)
+    text = map(lambda x: " ".join(re.findall(r"\w{2,}", x)), text)
+    text = " ".join(text)
+    text = re.sub(r"\s{2,}", " ", text).strip()
 
     content = soup.find_all(True)    # find all tags
     tags = []
@@ -57,7 +107,7 @@ def parse_page(in_file, urlid):
             elif isinstance(value, str) and len(value) < 15:
                 values.append(value)
             
-    return " ".join(tags), " ".join(attrs), " ".join(values)
+    return " ".join(tags), " ".join(attrs), " ".join(values), title, text
 
 
 def main(argv):
@@ -81,21 +131,28 @@ def main(argv):
 
     cu.log.setLevel(logging.CRITICAL)
     fIn = glob.glob(inFolder + "/*/*raw*")
-    feedstrain.writerow(["id", "tags", "attributes", "values", "sponsored"])
-    feedstest.writerow(["id", "tags", "attributes", "values"])
+    feedstrain.writerow(["id", "tags", "attributes", "values",
+                         "title", "text", "sponsored"])
+    feedstest.writerow(["id", "tags", "attributes", "values", "title", "text"])
 
     for idx, filename in enumerate(fIn):
 
         if idx % 1000 == 0:
             print "Processed %d HTML files" % idx
             if idx > 0:
-                feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, y))
-                feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array))
+                feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array,
+                                         train_value_array, train_title_array, train_text_array, y))
+                feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array,
+                                        test_value_array, test_title_array, test_text_array))
             y = []
+            train_text_array = []
+            train_title_array = []
             train_value_array = []
             train_attr_array = []
             train_tag_array = []
             train_id_array = []
+            test_text_array = []
+            test_title_array = []
             test_value_array = []
             test_attr_array = []
             test_tag_array = []
@@ -105,7 +162,7 @@ def main(argv):
         urlid = filenameDetails[-1].split('_')[0]
 
         try:
-            tags, attrs, values = parse_page(filename, urlid)
+            tags, attrs, values, title, text = parse_page(filename, urlid)
         except Exception as e:
             ferr.write("parse error with reason : "+str(e)+" on page "+urlid+"\n")
             continue
@@ -113,22 +170,28 @@ def main(argv):
         try:
             sponsored = map_of_train[urlid]
             y.append(sponsored)
+            train_text_array.append(text)
+            train_title_array.append(title)
             train_value_array.append(values)
             train_attr_array.append(attrs)
             train_tag_array.append(tags)
             train_id_array.append(urlid)
         except KeyError:
+            test_text_array.append(text)
+            test_title_array.append(title)
             test_value_array.append(values)
             test_attr_array.append(attrs)
             test_tag_array.append(tags)
             test_id_array.append(urlid)
         
-    feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, train_value_array, y))
-    feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array, test_value_array))
+    feedstrain.writerows(zip(train_id_array, train_tag_array, train_attr_array, train_value_array,
+                             train_title_array, train_text_array, y))
+    feedstest.writerows(zip(test_id_array, test_tag_array, test_attr_array, test_value_array,
+                            test_title_array, test_text_array))
     traincsv.close()
     testcsv.close()
     ferr.close()
     
 
 if __name__ == "__main__":
-   main(["datasets\\html", "datasets\\trainTags.csv", "datasets\\testTags.csv"])
+   main(["datasets\\html", "datasets\\trainData.csv", "datasets\\testData.csv"])
